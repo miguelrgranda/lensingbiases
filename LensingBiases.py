@@ -30,15 +30,21 @@ def addargs(parser):
 		help='CAMB file containing the fiducial lensed spectra',
 		required=True)
 	parser.add_argument(
-		'-FWHM',
-		dest='FWHM',
-		help='Beam width (FWHM) in arcmin',
+		'-NT',
+		dest='NT',
+		help='Deconvolved temperature noise in muk**2 (Modified by Miguel Ruiz-Granda)',
 		required=True,
 		type=float)
 	parser.add_argument(
-		'-noise_level',
-		dest='noise_level',
-		help='Temperature noise level (uk.arcmin). Polar is sqrt(2) bigger.',
+		'-NE',
+		dest='NE',
+		help='Deconvolved E polarization noise in muk**2 (Modified by Miguel Ruiz-Granda)',
+		required=True,
+		type=float)
+	parser.add_argument(
+		'-NB',
+		dest='NB',
+		help='Deconvolved B polarization noise in muk**2 (Modified by Miguel Ruiz-Granda)',
 		required=True,
 		type=float)
 	parser.add_argument(
@@ -87,23 +93,24 @@ def checkproc_py():
 	'''
 	nproc = checkproc_f.get_threads()
 	if nproc > 1:
-		print 'You are using ', nproc, ' processors'
+		print('You are using ', nproc, ' processors')
 	else:
-		print '###################################'
-		print 'You are using ', nproc, ' processor'
-		print 'If you want to speed up the computation,'
-		print 'set up correctly your number of task.'
-		print 'e.g in bash, if you want to use n procs,'
-		print 'add this line to your bashrc:'
-		print 'export OMP_NUM_THREADS=n'
-		print '###################################'
+		print('###################################')
+		print('You are using ', nproc, ' processor')
+		print('If you want to speed up the computation,')
+		print('set up correctly your number of task.')
+		print('e.g in bash, if you want to use n procs,')
+		print('add this line to your bashrc:')
+		print('export OMP_NUM_THREADS=n')
+		print('###################################')
 
 def compute_n0_py(
 	from_args=None,
 	phifile=None,
 	lensedcmbfile=None,
-	FWHM=None,
-	noise_level=None,
+	NT=None,
+	NE=None,
+	NB=None,
 	lmin=None,
 	lmaxout=None,
 	lmax=None,
@@ -118,8 +125,9 @@ def compute_n0_py(
 			If specified, you do not have to specified other arguments.
 		* phifile: string, path to the file containing the fiducial lensing potential
 		* lensedcmbfile: string, path to the file containing the fiducial lensed CMB spectra
-		* FWHM: float, beam width in arcmin
-		* noise_level: float, Temperature noise level (uk.arcmin). Polar is sqrt(2) bigger.
+		* NT: float array, deconvolved temperature noise in muk**2 (Modified by Miguel Ruiz-Granda)
+		* NE: float array, deconvolved E polarization noise in muk**2 (Modified by Miguel Ruiz-Granda)
+		* NB: float array, deconvolved B polarization noise in muk**2 (Modified by Miguel Ruiz-Granda)
 		* lmin: int, Minimum multipole
 		* lmaxout: int, Maximum multipole for the output
 		* lmax: int, Maximum multipole for the computation
@@ -134,8 +142,9 @@ def compute_n0_py(
 		lensingbiases_f.compute_n0(
 			from_args.phifile,
 			from_args.lensedcmbfile,
-			from_args.FWHM/60.,
-			from_args.noise_level,
+			from_args.NT,
+			from_args.NE,
+			from_args.NB,
 			from_args.lmin,
 			from_args.lmaxout,
 			from_args.lmax,
@@ -147,8 +156,9 @@ def compute_n0_py(
 		lensingbiases_f.compute_n0(
 			phifile,
 			lensedcmbfile,
-			FWHM/60.,
-			noise_level,
+			NT,
+			NE,
+			NB,
 			lmin,
 			lmaxout,
 			lmax,
@@ -166,11 +176,9 @@ def compute_n0_py(
 	return bins, phiphi, n0_mat, indices
 
 def compute_n1_py(
-	from_args=None,
-	phifile=None,
-	lensedcmbfile=None,
-	FWHM=None,
-	noise_level=None,
+	Cl_pp=None,
+	Cl_theory=None,
+	Cl_obs=None,
 	lmin=None,
 	lmaxout=None,
 	lmax=None,
@@ -181,12 +189,9 @@ def compute_n1_py(
 	Routine to compute the N1 bias.
 	It calls internally the Fortran routine for speed-up.
 	Input:
-		* from_args: class, contains all argument for the routine (see addargs).
-			If specified, you do not have to specified other arguments.
-		* phifile: string, path to the file containing the fiducial lensing potential
-		* lensedcmbfile: string, path to the file containing the fiducial lensed CMB spectra
-		* FWHM: float, beam width in arcmin
-		* noise_level: float, Temperature noise level (uk.arcmin). Polar is sqrt(2) bigger.
+		* Cl_pp: float array, lensing power spectrum (Modified by Miguel Ruiz-Granda)
+		* Cl_theory: (TT, EE, BB, TE) float array containing the theoretical CMB lensed power spectra (Modified by Miguel Ruiz-Granda)
+		* Cl_obs: (TT, EE, BB) float array, observed CMB power spectra (CMB + noise) (Modified by Miguel Ruiz-Granda)
 		* lmin: int, Minimum multipole
 		* lmaxout: int, Maximum multipole for the output
 		* lmax: int, Maximum multipole for the computation
@@ -197,44 +202,36 @@ def compute_n1_py(
 		* return bins, lensing potential, matrix containing
 			all N1s, and names of spectra ordered.
 	"""
-	if from_args is not None:
-		lensingbiases_f.compute_n1(
-			from_args.phifile,
-			from_args.lensedcmbfile,
-			from_args.FWHM/60.,
-			from_args.noise_level,
-			from_args.lmin,
-			from_args.lmaxout,
-			from_args.lmax,
-			from_args.lmax_TT,
-			from_args.lcorr_TT,
-			from_args.tmp_output)
-		n1 = np.loadtxt(os.path.join(from_args.tmp_output, 'N1_All_analytical.dat')).T
-	else:
-		lensingbiases_f.compute_n1(
-			phifile,lensedcmbfile,
-			FWHM/60.,
-			noise_level,
-			lmin,
-			lmaxout,
-			lmax,
-			lmax_TT,
-			lcorr_TT,
-			tmp_output)
-		n1 = np.loadtxt(os.path.join(tmp_output, 'N1_All_analytical.dat')).T
+	
+	CT = Cl_theory[0]
+	CE = Cl_theory[1]
+	CB = Cl_theory[2]
+	CX = Cl_theory[3]
+	CTf = CT
+	CEf = CE
+	CBf = CB
+	CXf = CX
+	CTobs = Cl_obs[0]
+	CEobs = Cl_obs[1]
+	CBobs = Cl_obs[2]
+	lensingbiases_f.compute_n1(Cl_pp,CT,CE,CX,CB,CTf,CEf,CXf,CBf,CTobs,
+		CEobs,CBobs,lmin,lmaxout,lmax,lmax_TT,lcorr_TT,tmp_output)
+		
+	n1 = np.loadtxt(os.path.join(tmp_output, 'N1_All_analytical.dat')).T
 
 	indices = ['TT', 'EE', 'EB', 'TE', 'TB', 'BB']
 	bins = n1[0]
 	n1_mat = np.reshape(n1[1:], (len(indices), len(indices), len(bins)))
 
-	return bins, n1_mat, indices
+	# return bins, n1_mat, indices
+	return n1_mat
 
 def compute_n1_derivatives_py(
 	from_args=None,
 	phifile=None,
 	lensedcmbfile=None,
-	FWHM=None,
-	noise_level=None,
+	NT=None,
+	NP=None,
 	lmin=None,
 	lmaxout=None,
 	lmax=None,
@@ -249,8 +246,8 @@ def compute_n1_derivatives_py(
 			If specified, you do not have to specified other arguments.
 		* phifile: string, path to the file containing the fiducial lensing potential
 		* lensedcmbfile: string, path to the file containing the fiducial lensed CMB spectra
-		* FWHM: float, beam width in arcmin
-		* noise_level: float, Temperature noise level (uk.arcmin). Polar is sqrt(2) bigger.
+		* NT: float array, deconvolved temperature noise in muk**2 (Modified by Miguel Ruiz-Granda)
+		* NP: float array, deconvolved polarization noise in muk**2 (Modified by Miguel Ruiz-Granda)
 		* lmin: int, Minimum multipole
 		* lmaxout: int, Maximum multipole for the output
 		* lmax: int, Maximum multipole for the computation
@@ -265,8 +262,8 @@ def compute_n1_derivatives_py(
 		lensingbiases_f.compute_n1_derivatives(
 			from_args.phifile,
 			from_args.lensedcmbfile,
-			from_args.FWHM/60.,
-			from_args.noise_level,
+			from_args.NT,
+			from_args.NP,
 			from_args.lmin,
 			from_args.lmaxout,
 			from_args.lmax,
@@ -278,8 +275,8 @@ def compute_n1_derivatives_py(
 		lensingbiases_f.compute_n1_derivatives(
 			phifile,
 			lensedcmbfile,
-			FWHM/60.,
-			noise_level,
+			NT,
+			NP,
 			lmin,
 			lmaxout,
 			lmax,
@@ -331,8 +328,8 @@ def minimum_variance_n0(N0_array, N0_names, checkit=False):
 	weights = np.array([[np.sum(submat[i]) for submat in inv_submat_array] for i in range(len(sub_vec))])
 
 	if checkit:
-		print 'Sum of weights = ', np.sum(weights * minimum_variance_n0) / len(minimum_variance_n0)
-		print 'Is sum of weights 1? ',np.sum(weights * minimum_variance_n0) / len(minimum_variance_n0) == 1.0
+		print('Sum of weights = ', np.sum(weights * minimum_variance_n0) / len(minimum_variance_n0))
+		print('Is sum of weights 1? ',np.sum(weights * minimum_variance_n0) / len(minimum_variance_n0) == 1.0)
 
 	return minimum_variance_n0, weights * minimum_variance_n0
 

@@ -2,3 +2,5 @@
 *.pdf
 *.so
 build/
+LensingBiases.egg-info/
+__pycache__/
