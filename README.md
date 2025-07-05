@@ -4,6 +4,8 @@ Lensingbiases
 Computation of N0 and N1 biases in the context of CMB weak lensing (flat-sky approximation).
 Derivatives of N1 biases with respect to the lensing potential power-spectrum available.
 
+**Modified version:** only the N1 computation was modified and checked. In this new version we have allowed to pass the observed angular power spectra as a parameter. Now, the ini file is not needed and the noise power spectra is not calculated internally. All the information is passed via the arguments of the python function LensingBiases.compute_n1_py(...), which computes the unnormalized N1 bias. We did not integrate the N0 computation accordingly in this modified version, so it is probably that it does not work.
+
 License: GNU License (see the LICENSE file for details) covers all files
 in the lensingbiases repository unless stated otherwise.
 
