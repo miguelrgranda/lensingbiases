@@ -34,6 +34,15 @@ So make sure that you are using several processors by adding in your bashrc:
 ```bash
 export OMP_NUM_THREADS=n
 ```
+Check in python that the OPENMP paralization is working properly:
+
+```python3
+>> import LensingBiases
+>> LensingBiases.checkproc_py()
+You are using n processors
+```
+
+
 
 ### Usage
 User has to provide the range of multipole, beam width, noise level, etc.
