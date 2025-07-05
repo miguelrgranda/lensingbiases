@@ -10,7 +10,7 @@ in the lensingbiases repository unless stated otherwise.
 ### Before starting
 The Python code has the following dependencies:
 * numpy, pylab, argparse
-* f2py
+* f2py (make sure is f2py3 if you are using python3)
 
 In most machines, those packages are automatically installed.
 Make sure you update your PYTHONPATH to use the code.
@@ -25,7 +25,7 @@ The package is written in python, but internal operations are
 done in Fortran. Therefore you need to compile it before using
 the routines. We provide a setup file. Just run:
 ```bash
-python setup.py build_ext --inplace --fcompiler=gfortran
+python setup.py build_ext --inplace [--fcompiler=gfortran]
 ```
 Depending on system, you may need to specify a different fortran compiler.
 For the purist, we also provide a Makefile for a direct compilation.
